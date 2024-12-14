@@ -35,6 +35,10 @@ func (b *BrokerConn) FailConnection(req ConnectRequest, msg string) error {
 	panic("todo")
 }
 
+func (b *BrokerConn) ConnectApplication(appName string) (ConnectRequest, error) {
+	panic("todo")
+}
+
 func (b *BrokerConn) connectToBroker() {
 	u := url.URL{Scheme: "ws", Host: *broker, Path: "/ws"}
 	log.Printf("connecting to broker %s\n", u.String())
