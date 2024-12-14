@@ -3,15 +3,17 @@ package main
 import (
 	"flag"
 	"log"
-	"net/url"
 	"os"
 	"os/signal"
-	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/vaishnavsm/stun-proxy/proxy/src/pkgs/connector"
+	"github.com/vaishnavsm/stun-proxy/proxy/src/pkgs/proxy"
 )
 
 var broker = flag.String("broker", ":8080", "address of the broker")
+var mode = flag.String("mode", "connector", "mode of operation: `connector` allows you to connect to it to reach an application, `proxy` allows you to register applications to it and allows others to connect to it")
+var connectorAddr = flag.String("connectorAddr", ":8081", "[connector] the address to bind to")
+var proxyApplication = flag.String("proxyConfig", "{}", "[proxy] JSON specifying the application this proxy exposes. set to default to see schema.")
 
 func main() {
 	flag.Parse()
@@ -19,61 +21,16 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *broker, Path: "/ws"}
-	log.Printf("connecting to broker %s\n", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("could not connect to broker", err)
+	if mode == nil {
+		log.Fatal("operation mode was nil")
 	}
-
-	defer c.Close()
-
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-					log.Println("read error:", err)
-				}
-				return
-			}
-			log.Printf("recv: %s", message)
-		}
-	}()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-done:
-			return
-		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write error:", err)
-				return
-			}
-		case <-interrupt:
-			log.Println("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("write close:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return
-		}
+	if *mode == "proxy" {
+		proxy.Run(proxyApplication, broker, interrupt)
+		return
 	}
-
+	if *mode == "connector" {
+		connector.Run(connectorAddr, broker, interrupt)
+		return
+	}
+	log.Fatalf("unknown mode: %s - expected proxy or connector", *mode)
 }
