@@ -13,15 +13,18 @@ type Broker struct {
 }
 
 func New() (*Broker, error) {
-	return &Broker{}, nil
+	broker := &Broker{
+		clients: make(map[*client.Client]bool),
+	}
+	return broker, nil
 }
 
 func (b *Broker) CreateClient(conn *websocket.Conn) error {
-	log.Println("Creating a new client")
 	c, err := client.New(conn, b)
 	if err != nil {
-		return errors.Wrap(err, "error creating a connection")
+		return errors.Wrap(err, "error creating a client")
 	}
+	log.Printf("connected to a new client: %s\n", c.Id)
 
 	b.clients[c] = true
 	return nil

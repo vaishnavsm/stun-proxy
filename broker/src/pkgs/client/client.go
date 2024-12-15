@@ -51,10 +51,10 @@ func (c *Client) reader() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				log.Printf("unexpected websocket close for client %s, %v\n", c.Id, err)
 			} else {
-				log.Printf("websocket close for client %s, %v\n", c.Id, err)
+				log.Printf("client disconnected %s, %v\n", c.Id, err)
 			}
 			break
 		}

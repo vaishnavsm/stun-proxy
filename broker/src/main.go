@@ -35,6 +35,10 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 
+	if addr == nil {
+		log.Fatal("Listen Address is nil")
+	}
+
 	b, err := broker_server.New()
 	if err != nil {
 		log.Fatal("Error starting broker", err)
@@ -42,6 +46,8 @@ func main() {
 
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", b.Serve)
+
+	log.Printf("starting broker on %s", *addr)
 	err = http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
