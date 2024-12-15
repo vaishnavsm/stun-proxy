@@ -48,8 +48,15 @@ func proxy(dst, src net.Conn, srcClosed chan struct{}, logdata any) {
 }
 
 func (s *Stunnel) Close() {
-	s.oConn.Close()
-	s.sConn.Close()
+	if s == nil {
+		return
+	}
+	if s.oConn != nil {
+		s.oConn.Close()
+	}
+	if s.sConn != nil {
+		s.sConn.Close()
+	}
 }
 
 func (s *Stunnel) Serve() {

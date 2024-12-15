@@ -30,6 +30,7 @@ func New(brokerAddr string, interrupt chan os.Signal) (*BrokerConn, error) {
 		addr:            brokerAddr,
 		interrupt:       interrupt,
 		ConnectRequests: make(chan ConnectRequest, 512),
+		connectionQueue: make(map[string]chan ConnectRequest),
 	}
 	err := b.connectToBroker()
 	if err != nil {
@@ -70,10 +71,18 @@ func (b *BrokerConn) serve() {
 		}
 	}()
 
+	ticker := time.NewTicker(120 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-b.readerClosed:
 			return
+		case <-ticker.C:
+			err := b.conn.WriteJSON(map[string]interface{}{"kind": "heartbeat"})
+			if err != nil {
+				log.Println("heartbeat error:", err)
+				return
+			}
 		case <-b.interrupt:
 			log.Println("interrupted")
 

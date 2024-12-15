@@ -15,7 +15,8 @@ type Broker struct {
 
 func New() (*Broker, error) {
 	broker := &Broker{
-		clients: make(map[*client.Client]bool),
+		clients:      make(map[*client.Client]bool),
+		applications: make(map[string]*client.Client),
 	}
 	return broker, nil
 }
@@ -66,7 +67,7 @@ func (b *Broker) ConnectToApplication(c *client.Client, name string, connectionI
 		LocalAddr:    clientRemote,
 		RemoteAddr:   serverRemote,
 	})
-	c.SendMsgConnectionRequest(client.ConnectRequest{
+	ac.SendMsgConnectionRequest(client.ConnectRequest{
 		ConnectionId: connectionId,
 		LocalAddr:    serverRemote,
 		RemoteAddr:   clientRemote,

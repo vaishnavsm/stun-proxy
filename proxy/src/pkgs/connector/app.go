@@ -34,6 +34,7 @@ func (a *AppConnect) Serve() error {
 		return errors.Wrap(err, "failed to connect to app via broker")
 	}
 
+	req.RemoteAddr = "127.0.0.1:3001"
 	conn, err := stunnel.New(req, a.remoteConn)
 	if err != nil {
 		log.Println("failed to create tunnel connection with peer", err)

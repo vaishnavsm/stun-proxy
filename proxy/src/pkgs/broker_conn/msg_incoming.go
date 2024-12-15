@@ -49,6 +49,7 @@ func (b *BrokerConn) handleMsgDiagnostic(msg []byte) {
 }
 
 func (b *BrokerConn) handleMessage(msg []byte) {
+	log.Printf("received message: %s\n", string(msg))
 	k := &MessageKind{}
 	err := json.Unmarshal(msg, k)
 	if err != nil {

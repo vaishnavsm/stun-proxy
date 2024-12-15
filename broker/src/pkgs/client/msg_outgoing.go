@@ -21,7 +21,7 @@ func (c *Client) SendMsgConnectionRequest(payload ConnectRequest) error {
 }
 func (c *Client) SendMsgConnectApplicationResponse(payload ConnectRequest) error {
 	err := c.conn.WriteJSON(map[string]interface{}{
-		"kind":    MsgKindConnectionRequest,
+		"kind":    MsgKindConnectApplicationResponse,
 		"payload": payload,
 	})
 	if err != nil {

@@ -63,6 +63,7 @@ func (a *Application) createConnection(req brokerconn.ConnectRequest) {
 		// close the connection
 	}
 
+	req.LocalAddr = "127.0.0.1:3001"
 	conn, err := stunnel.New(req, backendConn)
 	if err != nil {
 		log.Printf("error connecting to peer: %s\n", err)
@@ -88,7 +89,9 @@ func (a *Application) Serve() {
 			}
 		case <-a.interrupt:
 			{
-				break
+				log.Printf("Got an interrupt\n")
+				a.close()
+				os.Exit(0)
 			}
 		}
 	}

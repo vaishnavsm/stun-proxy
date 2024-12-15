@@ -37,7 +37,7 @@ func (c *Client) RemoteIp() string {
 
 func (c *Client) RandomRemoteAddr() string {
 	ip := c.RemoteIp()
-	port := rand.UintN(0000) + 40000 // random port between 40-50k
+	port := rand.UintN(10000) + 40000 // random port between 40-50k
 	return fmt.Sprintf("%s:%d", ip, port)
 }
 
@@ -58,11 +58,11 @@ func (c *Client) reader() {
 	defer c.close()
 
 	// Handle timeouts
-	c.conn.SetReadDeadline(time.Now().Add(maxTimeout))
-	c.conn.SetPongHandler(func(appData string) error {
-		c.conn.SetReadDeadline(time.Now().Add(maxTimeout))
-		return nil
-	})
+	// c.conn.SetReadDeadline(time.Now().Add(maxTimeout))
+	// c.conn.SetPongHandler(func(appData string) error {
+	// 	c.conn.SetReadDeadline(time.Now().Add(maxTimeout))
+	// 	return nil
+	// })
 
 	for {
 		_, message, err := c.conn.ReadMessage()

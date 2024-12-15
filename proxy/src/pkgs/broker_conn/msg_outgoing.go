@@ -39,7 +39,8 @@ func (b *BrokerConn) ConnectApplication(appName string) (ConnectRequest, error) 
 	err = b.conn.WriteJSON(map[string]interface{}{
 		"kind": MsgKindConnectApplication,
 		"payload": map[string]interface{}{
-			"name": appName,
+			"name":         appName,
+			"connectionId": connectionId,
 		},
 	})
 	if err != nil {
