@@ -51,6 +51,9 @@ func (b *BrokerConn) ConnectApplication(appName string) (ConnectRequest, error) 
 	case req := <-ch:
 		{
 			delete(b.connectionQueue, connectionId)
+			if req.Error != "" {
+				return req, errors.Errorf("error present in response body: %s", req.Error)
+			}
 			return req, nil
 		}
 	case <-time.After(2 * time.Minute):

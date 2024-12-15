@@ -22,6 +22,10 @@ func (b *BrokerConn) handleMsgConnectionRequest(msg []byte) {
 		return
 	}
 
+	if d.Payload.Error != "" {
+		log.Printf("error in the connection request body: %v\n", d.Payload)
+	}
+
 	b.ConnectRequests <- d.Payload
 }
 

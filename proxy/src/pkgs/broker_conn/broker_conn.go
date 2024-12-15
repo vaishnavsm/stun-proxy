@@ -13,6 +13,7 @@ type ConnectRequest struct {
 	ConnectionId string `json:"connectionId"`
 	LocalAddr    string `json:"localAddr"`
 	RemoteAddr   string `json:"remoteAddr"`
+	Error        string `json:"error"`
 }
 
 type BrokerConn struct {

@@ -9,7 +9,8 @@ import (
 )
 
 type Broker struct {
-	clients map[*client.Client]bool
+	clients      map[*client.Client]bool
+	applications map[string]*client.Client
 }
 
 func New() (*Broker, error) {
@@ -30,12 +31,46 @@ func (b *Broker) CreateClient(conn *websocket.Conn) error {
 	return nil
 }
 
-func (b *Broker) RegisterApplication() {
-
+func (b *Broker) RegisterApplication(c *client.Client, name string) {
+	if ac, ok := b.applications[name]; ok {
+		log.Printf("Tried to register application %s on client %s when client %s already has it. Ignoring.\n", name, c.Id, ac.Id)
+		return
+	}
+	b.applications[name] = c
+	log.Printf("Registered application %s on client %s\n", name, c.Id)
 }
 
-func (b *Broker) ConnectToApplication() {
+func (b *Broker) ConnectToApplication(c *client.Client, name string, connectionId string) {
+	ac, ok := b.applications[name]
+	if !ok {
+		log.Printf("Client %s tried to connect to unknown application %s\n", c.Id, name)
+		err := c.SendMsgConnectApplicationResponse(client.ConnectRequest{
+			ConnectionId: connectionId,
+			Error:        "unknown application " + name,
+		})
+		if err != nil {
+			log.Printf("Failed responding to client %s: %v\n", c.Id, err)
+		}
+		return
+	}
 
+	log.Printf("Initiating connection between clients %s and %s for application %s\n", c.Id, ac.Id, name)
+
+	serverRemote := ac.RandomRemoteAddr()
+	clientRemote := c.RandomRemoteAddr()
+
+	log.Printf("Allocating addresses:\n\tserver: %s\n\tclient: %s\nGodspeed!\n", serverRemote, clientRemote)
+
+	c.SendMsgConnectApplicationResponse(client.ConnectRequest{
+		ConnectionId: connectionId,
+		LocalAddr:    clientRemote,
+		RemoteAddr:   serverRemote,
+	})
+	c.SendMsgConnectionRequest(client.ConnectRequest{
+		ConnectionId: connectionId,
+		LocalAddr:    serverRemote,
+		RemoteAddr:   clientRemote,
+	})
 }
 
 func (b *Broker) Disconnect(c *client.Client) error {

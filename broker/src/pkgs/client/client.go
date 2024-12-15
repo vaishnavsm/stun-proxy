@@ -1,7 +1,10 @@
 package client
 
 import (
+	"fmt"
 	"log"
+	"math/rand/v2"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,8 +13,8 @@ import (
 )
 
 type Broker interface {
-	RegisterApplication()
-	ConnectToApplication()
+	RegisterApplication(c *Client, name string)
+	ConnectToApplication(c *Client, name string, connectionId string)
 	Disconnect(c *Client) error
 }
 
@@ -19,6 +22,23 @@ type Client struct {
 	conn *websocket.Conn
 	b    Broker
 	Id   string
+}
+
+func (c *Client) RemoteIp() string {
+	s := c.conn.RemoteAddr().String()
+	ipSegments := strings.Split(s, ":")
+	if len(ipSegments) == 2 {
+		// ipv4
+		return ipSegments[0]
+	}
+	// ipv6, i don't really know if this works lol
+	return strings.Join(ipSegments[:len(ipSegments)-1], ":")
+}
+
+func (c *Client) RandomRemoteAddr() string {
+	ip := c.RemoteIp()
+	port := rand.UintN(0000) + 40000 // random port between 40-50k
+	return fmt.Sprintf("%s:%d", ip, port)
 }
 
 func (c *Client) close() {
@@ -33,10 +53,6 @@ func (c *Client) close() {
 }
 
 var maxTimeout = 30 * time.Second
-
-func (c *Client) handleMessage(msg []byte) {
-	log.Printf("got message from client %s: %s\n", c.Id, string(msg))
-}
 
 func (c *Client) reader() {
 	defer c.close()
