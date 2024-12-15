@@ -14,12 +14,12 @@ func Run(c *config.Config) {
 		log.Fatal("could not connect to broker", err)
 	}
 
-	appId, err := b.RegisterApplication(c.Name)
+	err = b.RegisterApplication(c.Name)
 	if err != nil {
 		log.Fatalf("Could not register application %s: %v", c.Name, err)
 	}
 
-	app, err := New(c.Name, c.Interrupt, b, c.Addr, appId)
+	app, err := New(c.Name, c.Interrupt, b, c.Addr)
 	if err != nil {
 		log.Fatalf("Could not create application %s: %v", c.Name, err)
 	}

@@ -13,7 +13,6 @@ import (
 
 type Application struct {
 	Name        string
-	Id          string
 	Addr        *net.TCPAddr
 	broker      *brokerconn.BrokerConn
 	interrupt   chan os.Signal
@@ -25,7 +24,7 @@ type Connection struct {
 	backend  net.Conn
 }
 
-func New(name string, interrupt chan os.Signal, broker *brokerconn.BrokerConn, addr string, appId string) (*Application, error) {
+func New(name string, interrupt chan os.Signal, broker *brokerconn.BrokerConn, addr string) (*Application, error) {
 	tcpaddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return nil, errors.Wrap(err, "error resolving tcp address")
@@ -35,7 +34,6 @@ func New(name string, interrupt chan os.Signal, broker *brokerconn.BrokerConn, a
 		interrupt:   interrupt,
 		broker:      broker,
 		Addr:        tcpaddr,
-		Id:          appId,
 		connections: sync.Map{},
 	}
 	return app, nil

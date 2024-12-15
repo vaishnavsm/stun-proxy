@@ -10,90 +10,91 @@ import (
 )
 
 type ConnectRequest struct {
-	LocalAddr  string
-	RemoteAddr string
+	ConnectionId string `json:"connectionId"`
+	LocalAddr    string `json:"localAddr"`
+	RemoteAddr   string `json:"remoteAddr"`
 }
 
 type BrokerConn struct {
 	interrupt       chan os.Signal
+	addr            string
 	ConnectRequests chan ConnectRequest
+	connectionQueue map[string]chan ConnectRequest
+	conn            *websocket.Conn
+	readerClosed    chan bool
 }
 
 func New(brokerAddr string, interrupt chan os.Signal) (*BrokerConn, error) {
-	panic("todo")
-}
-
-func (b *BrokerConn) RegisterApplication(name string) (string, error) {
-	panic("todo")
-}
-
-func (b *BrokerConn) Disconnect() error {
-	panic("todo")
-}
-
-func (b *BrokerConn) FailConnection(req ConnectRequest, msg string) error {
-	panic("todo")
-}
-
-func (b *BrokerConn) ConnectApplication(appName string) (ConnectRequest, error) {
-	panic("todo")
-}
-
-func (b *BrokerConn) connectToBroker() {
-	u := url.URL{Scheme: "ws", Host: *broker, Path: "/ws"}
-	log.Printf("connecting to broker %s\n", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("could not connect to broker", err)
+	b := &BrokerConn{
+		addr:            brokerAddr,
+		interrupt:       interrupt,
+		ConnectRequests: make(chan ConnectRequest, 512),
 	}
+	err := b.connectToBroker()
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
 
-	defer c.Close()
+func (b *BrokerConn) Close() {
+	err := b.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	if err != nil {
+		log.Println("write close:", err)
+		return
+	}
+	select {
+	case <-b.readerClosed:
+	case <-time.After(time.Second):
+	}
+	b.conn.Close()
+}
 
-	done := make(chan struct{})
+func (b *BrokerConn) serve() {
+	defer b.conn.Close()
+
+	b.readerClosed = make(chan bool)
 
 	go func() {
-		defer close(done)
+		defer close(b.readerClosed)
 		for {
-			_, message, err := c.ReadMessage()
+			_, message, err := b.conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 					log.Println("read error:", err)
 				}
 				return
 			}
-			log.Printf("recv: %s", message)
+			b.handleMessage(message)
 		}
 	}()
 
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
 	for {
 		select {
-		case <-done:
+		case <-b.readerClosed:
 			return
-		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-			if err != nil {
-				log.Println("write error:", err)
-				return
-			}
 		case <-b.interrupt:
-			log.Println("interrupt")
+			log.Println("interrupted")
 
 			// Cleanly close the connection by sending a close message and then
 			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("write close:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
+			b.Close()
 			return
 		}
 	}
+}
+
+func (b *BrokerConn) connectToBroker() error {
+	u := url.URL{Scheme: "ws", Host: b.addr, Path: "/ws"}
+	log.Printf("connecting to broker %s\n", u.String())
+
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Fatal("could not connect to broker", err)
+		return err
+	}
+
+	b.conn = c
+	go b.serve()
+	return nil
 }
